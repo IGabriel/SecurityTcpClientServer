@@ -5,6 +5,7 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SecurityServer
@@ -19,14 +20,17 @@ namespace SecurityServer
 
         private X509Certificate _certificate;
 
+        private CancellationToken _token;
+
         public string CertificateFilePath { get; }
 
         public int Port { get; }
 
-        public SecurityAsyncService(int port, string certificateFilePath)
+        public SecurityAsyncService(int port, string certificateFilePath, CancellationToken token)
         {
             Port = port;
             CertificateFilePath = certificateFilePath;
+            _token = token;
         }
 
         public TcpListener Listener
@@ -41,16 +45,15 @@ namespace SecurityServer
             }
         }
 
-        public async void Run()
+        public async void Start()
         {
             _certificate = X509Certificate.CreateFromCertFile(CertificateFilePath);
 
             Listener.Start();
-            while(true)
+            while(_token.IsCancellationRequested)
             {
                 try
                 {
-                    // TODO: Use ContinueWith?
                     await Listener.AcceptTcpClientAsync().ContinueWith(Process);
                 }
                 catch
@@ -58,19 +61,8 @@ namespace SecurityServer
                     // TODO: Logging, close connection and release resource.
                 }
             }
-        }
-
-        public void Stop()
-        {
             Listener.Stop();
         }
-
-        // private async Task<TcpClient> HandleClientAcceptedAsync()
-        // {
-        //     var client = await Listener.AcceptTcpClientAsync();
-        //     OnClientAccepted(client);
-        //     return client;
-        // }
 
         private async Task Process(Task<TcpClient> clientTask)
         {

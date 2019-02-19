@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using SecurityServer;
 
 namespace ServerConsole
@@ -19,8 +21,11 @@ namespace ServerConsole
             string certificateFilePath = args[1];
             if (int.TryParse(args[0], out port) && !string.IsNullOrEmpty(certificateFilePath))
             {
-                service = new SecurityAsyncService(Convert.ToInt32(args[0]), args[1]);
-                service.Run();
+                var source = new CancellationTokenSource();
+                service = new SecurityAsyncService(Convert.ToInt32(args[0]), args[1], source.Token);
+                service.Start();
+
+                Quit();
             }
             else
             {
@@ -32,6 +37,17 @@ namespace ServerConsole
         {
             Console.WriteLine("Listen the TCP port:");
             Console.WriteLine("ServerConsole [port] [X509Certificate file path]");
+        }
+
+        private static void Quit()
+        {
+            const string keyword = "quie";
+            Console.WriteLine("Type '{0}' to stop.", keyword);
+            string input = Console.ReadLine();
+            if (!string.Equals(keyword, input, StringComparison.InvariantCultureIgnoreCase))
+            {
+                Quit();
+            }
         }
     }
 }
