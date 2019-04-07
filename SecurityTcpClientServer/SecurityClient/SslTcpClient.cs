@@ -12,6 +12,6 @@ namespace SecurityClient
             _serverCertificateName = serverCertificateName;
         }
 
-        public void 
+        //public void 
     }
 }
