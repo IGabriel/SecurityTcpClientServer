@@ -41,7 +41,7 @@ namespace ServerConsole
 
         private static void Quit()
         {
-            const string keyword = "quie";
+            const string keyword = "quit";
             Console.WriteLine("Type '{0}' to stop.", keyword);
             string input = Console.ReadLine();
             if (!string.Equals(keyword, input, StringComparison.InvariantCultureIgnoreCase))
