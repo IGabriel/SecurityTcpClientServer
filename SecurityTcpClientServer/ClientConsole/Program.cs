@@ -1,5 +1,4 @@
-﻿using System;
-using log4net;
+﻿using log4net;
 using Common;
 using SecurityClient;
 
@@ -17,13 +16,17 @@ namespace ClientConsole
             int port;
             if (args != null && args.Length == 3
                 && !string.IsNullOrEmpty(args[0])
-                && !int.TryParse(args[1], out port)
+                && int.TryParse(args[1], out port)
                 && !string.IsNullOrEmpty(args[2]))
             {
                 string serverName = args[0];
+                string certificateFile = args[2];
 
-                SslTcpClient client = new SslTcpClient(args[0], port, args[2]);
-                //client.Connect()
+                _logger.InfoFormat("Connecting server: '{0}'; port: '{1}', certificate file: '{2}'.",
+                    serverName, port, certificateFile);
+
+
+                SslTcpClient client = new SslTcpClient(serverName, port, certificateFile);
 
             }
             else

@@ -7,6 +7,7 @@
 	"settings": {
 		"files.exclude": {
 			"**/bin": true,
+			"**/Logs": true,
 			"**/obj": true
 		}
 	}

@@ -1,15 +1,22 @@
 ﻿using System;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using log4net;
+using Common;
 using SecurityServer;
+
 
 namespace ServerConsole
 {
     class Program
     {
+        private static ILog _logger;
+
         static void Main(string[] args)
         {
+            Common.LoggerFactory.Initialize();
+            _logger = Common.LoggerFactory.GetLogger(typeof(Program));
+
             SecurityAsyncService service;
             if (args.Length != 2)
             {
@@ -21,6 +28,9 @@ namespace ServerConsole
             string certificateFilePath = args[1];
             if (int.TryParse(args[0], out port) && !string.IsNullOrEmpty(certificateFilePath))
             {
+                _logger.InfoFormat("Listening port '{0}', Certificate file: '{1}'.",
+                    port, certificateFilePath);
+
                 var source = new CancellationTokenSource();
                 service = new SecurityAsyncService(Convert.ToInt32(args[0]), args[1], source.Token);
                 service.Start();
@@ -35,8 +45,8 @@ namespace ServerConsole
 
         private static void ShowUsage()
         {
-            Console.WriteLine("Listen the TCP port:");
-            Console.WriteLine("ServerConsole [port] [X509Certificate file path]");
+            _logger.Info("Listen the TCP port:");
+            _logger.Info("ServerConsole [port] [X509Certificate file path]");
         }
 
         private static void Quit()
