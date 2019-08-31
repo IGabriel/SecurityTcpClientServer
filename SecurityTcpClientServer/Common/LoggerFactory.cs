@@ -12,8 +12,11 @@ namespace Common
 
         public static void Initialize(string log4netConfigFile = Log4netConfigFile)
         {
-            var repository = LogManager.GetRepository(Assembly.GetExecutingAssembly());            
-            XmlConfigurator.Configure(repository, new FileInfo(log4netConfigFile));
+            var assembly = Assembly.GetEntryAssembly();
+            string configPath = Path.Combine(Path.GetDirectoryName(assembly.Location), log4netConfigFile);
+
+            var repository = LogManager.GetRepository(assembly);
+            XmlConfigurator.Configure(repository, new FileInfo(configPath));
         }
 
         public static ILog GetLogger(Type classType)

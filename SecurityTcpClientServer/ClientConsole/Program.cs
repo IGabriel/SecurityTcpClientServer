@@ -37,11 +37,6 @@ namespace ClientConsole
         {
             _logger.Info("Connect to a SSL server.");
             _logger.Info("ClientServer [server name] [port] [X509Certificate file path]");
-
-            // Console.WriteLine("Connect to a SSL server.");
-            // Console.WriteLine("ClientServer [server name] [port] [X509Certificate file path]");
-
-            Console.WriteLine("Yes?");
         }
     }
 }
