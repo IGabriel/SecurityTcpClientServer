@@ -29,13 +29,14 @@ namespace ServerConsole
             int port = 7788;
             string certificateFilePath = @"C:\source_code\SecurityTcpClientServer\SecurityTcpClientServer\Binary\publickey.cer";
 
-            if (int.TryParse(args[0], out port) && !string.IsNullOrEmpty(certificateFilePath))
+            //if (int.TryParse(args[0], out port) && !string.IsNullOrEmpty(certificateFilePath))
+            if (!string.IsNullOrEmpty(certificateFilePath))
             {
                 _logger.InfoFormat("Listening port '{0}', Certificate file: '{1}'.",
                     port, certificateFilePath);
 
                 var source = new CancellationTokenSource();
-                SecurityAsyncService service = new SecurityAsyncService(Convert.ToInt32(args[0]), args[1], source.Token);
+                SecurityAsyncService service = new SecurityAsyncService(Convert.ToInt32(port), certificateFilePath, source.Token);
                 service.Start();
 
                 Quit();

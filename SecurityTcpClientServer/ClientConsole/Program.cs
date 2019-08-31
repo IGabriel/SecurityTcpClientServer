@@ -27,7 +27,6 @@ namespace ClientConsole
 
 
                 SslTcpClient client = new SslTcpClient(serverName, port, certificateFile);
-
             }
             else
             {
