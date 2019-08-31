@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using Common;
 
 namespace SecurityServer
 {
@@ -14,7 +15,7 @@ namespace SecurityServer
     // TOD0: support cancel?
     // TODO: Idisposeable
 
-    public class SecurityAsyncService
+    public class SecurityAsyncService : LoggedObject
     {
         private TcpListener _listener;
 
@@ -47,6 +48,8 @@ namespace SecurityServer
 
         public async void Start()
         {
+            Logger.Info("Starting Async service...");
+
             _certificate = X509Certificate.CreateFromCertFile(CertificateFilePath);
 
             Listener.Start();
@@ -56,11 +59,14 @@ namespace SecurityServer
                 {
                     await Listener.AcceptTcpClientAsync().ContinueWith(Process);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Logger.ErrorFormat("Unexpected exception, message: {0}.", ex.Message);
                     // TODO: Logging, close connection and release resource.
                 }
             }
+
+            Logger.Info("Stopping Async service...");
             Listener.Stop();
         }
 
