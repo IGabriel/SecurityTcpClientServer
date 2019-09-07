@@ -28,6 +28,7 @@ namespace ClientConsole
 
                 using (SslTcpClient client = new SslTcpClient(serverName, port, certificateFile))
                 {
+                    client.Connect();
                 }
             }
             else

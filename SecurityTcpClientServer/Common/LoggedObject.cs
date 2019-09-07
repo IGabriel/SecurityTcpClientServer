@@ -2,7 +2,7 @@ using log4net;
 
 namespace Common
 {
-    public abstract class LoggedObject
+    public class LoggedObject
     {
         private ILog _logger;
 
