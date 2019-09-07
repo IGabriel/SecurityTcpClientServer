@@ -23,6 +23,34 @@
             "type": "coreclr",
             "request": "attach",
             "processId": "${command:pickProcess}"
+        },
+        {
+            "name": "Security server debugger",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/ServerConsole/bin/Debug/netcoreapp2.2/ServerConsole.dll",
+            "args": ["7788", "C:\\source_code\\SecurityTcpClientServer\\SecurityTcpClientServer\\Binary\\publickey.cer"],
+            "cwd": "${workspaceFolder}/ServerConsole",
+            // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "Security client debugger",
+            "type":"coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/ClientConsole/bin/Debug/netstandard2.0/ClientConsole.dll",
+            "args": ["localhost", "7788", "C:\\source_code\\SecurityTcpClientServer\\SecurityTcpClientServer\\Binary\\publickey.cer"],
+            "cwd": "${workspaceFolder}/ClientConsole",
+            // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "internalConsoleOptions": "openOnSessionStart"
         }
     ,]
 }

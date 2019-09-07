@@ -53,7 +53,7 @@ namespace SecurityServer
             _certificate = X509Certificate.CreateFromCertFile(CertificateFilePath);
 
             Listener.Start();
-            while(_token.IsCancellationRequested)
+            while(!_token.IsCancellationRequested)
             {
                 try
                 {

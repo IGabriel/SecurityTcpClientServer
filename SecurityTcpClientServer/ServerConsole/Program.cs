@@ -17,20 +17,20 @@ namespace ServerConsole
             Common.LoggerFactory.Initialize();
             _logger = Common.LoggerFactory.GetLogger(typeof(Program));
 
-            // if (args.Length != 2)
-            // {
-            //     ShowUsage();
-            //     return;
-            // }
+            if (args.Length != 2)
+            {
+                ShowUsage();
+                return;
+            }
 
-            // int port;
-            // string certificateFilePath = args[1];
+            int port;
+            string certificateFilePath = args[1];
 
-            int port = 7788;
-            string certificateFilePath = @"C:\source_code\SecurityTcpClientServer\SecurityTcpClientServer\Binary\publickey.cer";
+            // int port = 7788;
+            // string certificateFilePath = @"C:\source_code\SecurityTcpClientServer\SecurityTcpClientServer\Binary\publickey.cer";
 
-            //if (int.TryParse(args[0], out port) && !string.IsNullOrEmpty(certificateFilePath))
-            if (!string.IsNullOrEmpty(certificateFilePath))
+            //if (!string.IsNullOrEmpty(certificateFilePath))
+            if (int.TryParse(args[0], out port) && !string.IsNullOrEmpty(certificateFilePath))
             {
                 _logger.InfoFormat("Listening port '{0}', Certificate file: '{1}'.",
                     port, certificateFilePath);
