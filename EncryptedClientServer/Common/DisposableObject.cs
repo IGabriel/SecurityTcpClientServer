@@ -2,7 +2,7 @@ using System;
 
 namespace Common
 {
-    public class DisposableObject : LoggedObject, IDisposable
+    public abstract class DisposableObject : LoggedObject, IDisposable
     {
         protected virtual void DisposeResource()
         {
