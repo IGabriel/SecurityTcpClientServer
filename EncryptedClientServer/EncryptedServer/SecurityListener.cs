@@ -9,7 +9,7 @@ using Common;
 
 namespace EncryptedServer
 {
-    public class SecurityListener : LoggedObject
+    public class SecurityListener : LogObject
     {
         private TcpListener _listener;
         private int _port;

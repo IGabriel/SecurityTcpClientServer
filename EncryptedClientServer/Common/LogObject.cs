@@ -2,7 +2,7 @@
 
 namespace Common
 {
-    public class LoggedObject
+    public class LogObject
     {
         private ILog _logger;
 
