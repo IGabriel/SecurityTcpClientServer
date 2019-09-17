@@ -1,12 +1,10 @@
-using log4net;
-
 namespace ClientServerLibrary
 {
     public class LogObject
     {
-        private ILog _logger;
+        private ILogger _logger;
 
-        protected ILog Logger
+        protected ILogger Logger
         {
             get
             {

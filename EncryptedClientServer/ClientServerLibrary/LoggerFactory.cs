@@ -16,9 +16,9 @@ namespace ClientServerLibrary
             XmlConfigurator.Configure(repository, new FileInfo(log4netConfigFile));
         }
 
-        public static ILog GetLogger(Type classType)
+        public static ILogger GetLogger(Type classType)
         {
-            return LogManager.GetLogger(classType);
+            return LogManager.GetLogger(classType) as ILogger;
         }
     }
 }
