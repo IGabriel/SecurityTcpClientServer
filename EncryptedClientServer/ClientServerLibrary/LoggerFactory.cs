@@ -18,7 +18,7 @@ namespace ClientServerLibrary
 
         public static ILogger GetLogger(Type classType)
         {
-            return LogManager.GetLogger(classType) as ILogger;
+            return new Logger(LogManager.GetLogger(classType));
         }
     }
 }
