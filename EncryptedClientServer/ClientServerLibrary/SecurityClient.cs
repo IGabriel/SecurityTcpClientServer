@@ -1,3 +1,4 @@
+using System;
 using System.Net.Sockets;
 using System.Text;
 
@@ -31,7 +32,8 @@ namespace ClientServerLibrary
                 // Console.WriteLine("Server says: {0}", serverMessage);
                 // Close the client connection.
                 stream.Close();
-                Logger.Info("Client closed.");
+
+                Logger.Info("");
             }
         }
 
