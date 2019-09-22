@@ -65,6 +65,7 @@ namespace ClientServerLibrary
         private async Task Process(Task<TcpClient> clientTask)
         {
             TcpClient client = await clientTask;
+
             using (client)
             {
                 NetworkStream stream = client.GetStream();
@@ -75,6 +76,18 @@ namespace ClientServerLibrary
                     int readCount = stream.Read(buffer, 0, DefaultBufferSize);
 
                     Logger.InfoFormat("Received data., count: {0}, content: {1}.", readCount, System.BitConverter.ToString(buffer));
+
+                    Logger.Info("Sending data back.");
+
+                    const string responseMessage = "Server send message back.";
+                    byte[] responseBuffer = System.Text.Encoding.Unicode.GetBytes(responseMessage);
+
+                    Logger.InfoFormat("Sending data., count: {0}, content: {1}.", responseBuffer.Length, System.BitConverter.ToString(responseBuffer));
+
+                    await stream.WriteAsync(responseBuffer, 0, responseBuffer.Length);
+
+
+
                 }
             }
         }

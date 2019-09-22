@@ -24,21 +24,28 @@ namespace ClientServerLibrary
             NetworkStream stream = _client.GetStream();
             using (stream)
             {
-                const string message = "Hello from the client.<EOF>";
+                const string message = "Hello from the client.";
                 byte[] messsageBuffer = Encoding.Unicode.GetBytes(message);
 
                 Logger.DebugFormat("Sending a text: '{0}', buffer Length: {1}, content: {2}",
                     message, messsageBuffer.Length, BitConverter.ToString(messsageBuffer));
 
                 stream.Write(messsageBuffer, 0, messsageBuffer.Length);
-                stream.Flush();
+
+                Logger.Info("Message sent.");
+
+
+                byte[] receiveBuffer = new byte[100];
+                int count = stream.Read(receiveBuffer, 0, 100);
+
+                Logger.DebugFormat("Reveived data. count: {0}, content: {1}.", count, BitConverter.ToString(receiveBuffer));
+
+
                 // Read message from the server.
                 // string serverMessage = ReadMessage(stream);
                 // Console.WriteLine("Server says: {0}", serverMessage);
                 // Close the client connection.
                 stream.Close();
-
-                Logger.Info("Message sent.");
             }
         }
 
