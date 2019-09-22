@@ -9,6 +9,14 @@ namespace ClientServerLibrary
 {
     public class SecurityListener : LogObject
     {
+        public static readonly int DefaultBufferSize;
+
+        static SecurityListener()
+        {
+            // DefaultBufferSize = 8 * 1024;
+            DefaultBufferSize = 100;
+        }
+
         private TcpListener _listener;
         private int _port;
 
@@ -60,10 +68,13 @@ namespace ClientServerLibrary
             using (client)
             {
                 NetworkStream stream = client.GetStream();
-                using (BinaryReader reader = new BinaryReader(stream))
+                using (stream)
                 {
-                    string message = reader.ReadString();
-                    Logger.InfoFormat("Received data: {0}.", message);
+                    byte[] buffer = new byte[DefaultBufferSize];
+
+                    int readCount = stream.Read(buffer, 0, DefaultBufferSize);
+
+                    Logger.InfoFormat("Received data., count: {0}, content: {1}.", readCount, System.BitConverter.ToString(buffer));
                 }
             }
         }

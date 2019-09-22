@@ -25,10 +25,10 @@ namespace ClientServerLibrary
             using (stream)
             {
                 const string message = "Hello from the client.<EOF>";
-                byte[] messsageBuffer = Encoding.UTF8.GetBytes(message);
+                byte[] messsageBuffer = Encoding.Unicode.GetBytes(message);
 
-                Logger.DebugFormat("Sending a text: '{0}', buffer Length: {1}.", message, messsageBuffer.Length);
-
+                Logger.DebugFormat("Sending a text: '{0}', buffer Length: {1}, content: {2}",
+                    message, messsageBuffer.Length, BitConverter.ToString(messsageBuffer));
 
                 stream.Write(messsageBuffer, 0, messsageBuffer.Length);
                 stream.Flush();

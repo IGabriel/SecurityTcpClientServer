@@ -11,7 +11,7 @@
         "preLaunchTask": "build",
         "program": "${workspaceFolder}/ClientConsole/bin/Debug/netcoreapp2.2/ClientConsole.dll",
         "args": ["localhost", "7788"],
-        "cwd": "${workspaceFolder}",
+        "cwd": "${workspaceFolder}/ClientConsole",
         "stopAtEntry": false,
         "console": "internalConsole"
     },
