@@ -24,8 +24,13 @@ namespace ClientServerLibrary
             NetworkStream stream = _client.GetStream();
             using (stream)
             {
-                byte[] messsage = Encoding.UTF8.GetBytes("Hello from the client.<EOF>");
-                stream.Write(messsage, 0, messsage.Length);
+                const string message = "Hello from the client.<EOF>";
+                byte[] messsageBuffer = Encoding.UTF8.GetBytes(message);
+
+                Logger.DebugFormat("Sending a text: '{0}', buffer Length: {1}.", message, messsageBuffer.Length);
+
+
+                stream.Write(messsageBuffer, 0, messsageBuffer.Length);
                 stream.Flush();
                 // Read message from the server.
                 // string serverMessage = ReadMessage(stream);
@@ -33,7 +38,7 @@ namespace ClientServerLibrary
                 // Close the client connection.
                 stream.Close();
 
-                Logger.Info("");
+                Logger.Info("Message sent.");
             }
         }
 

@@ -62,7 +62,8 @@ namespace ClientServerLibrary
                 NetworkStream stream = client.GetStream();
                 using (BinaryReader reader = new BinaryReader(stream))
                 {
-                    Logger.InfoFormat("Received data: {0}.", reader.ReadString());
+                    string message = reader.ReadString();
+                    Logger.InfoFormat("Received data: {0}.", message);
                 }
             }
         }
