@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -9,87 +11,204 @@ namespace ClientServerLibrary
 {
     public class SecurityListener : LogObject
     {
-        public static readonly int DefaultBufferSize;
+        /// <summary>
+        /// Default listening port, value: 7788
+        /// </summary>
+        public static readonly int DefaultPort = 7788;
 
-        static SecurityListener()
-        {
-            // DefaultBufferSize = 8 * 1024;
-            DefaultBufferSize = 100;
-        }
+        /// <summary>
+        /// Default length of pending connections queue, value: 1.
+        /// </summary>
+        public static readonly int DefaultBacklog = 10;
 
-        private TcpListener _listener;
-        private int _port;
+        private Socket _listener;
+        private readonly AddressFamily _family;
+        private readonly int _port;
+        private readonly int _backlog;
+        private readonly int _bufferSize;
+        private readonly SocketAsyncEventArgs _acceptEventArgs;
 
-        public CancellationToken Token {get; }
-        public TcpListener Listener
+        /// <summary>
+        /// Key: Socket handle
+        /// </summary>
+        private ConcurrentDictionary<IntPtr, AsyncState> _connectedMapping;
+
+        private Socket Listener
         {
             get
             {
                 if (_listener == null)
                 {
-                    _listener = new TcpListener(IPAddress.Any, _port);
+                    _listener = new Socket(_family, SocketType.Stream, ProtocolType.Tcp);
                 }
                 return _listener;
             }
         }
 
+        public SecurityListener() : this(AddressFamily.InterNetwork, DefaultPort, DefaultBacklog, AsyncState.DefaultBufferSize) {}
 
-        public SecurityListener(int port, CancellationToken token)
+        public SecurityListener(AddressFamily family, int port, int backlog, int bufferSize)
         {
+            _family = family;
             _port = port;
-            Token = token;
+            _backlog = backlog;
+            _bufferSize = bufferSize;
+
+            _acceptEventArgs = new SocketAsyncEventArgs();
+            _connectedMapping = new ConcurrentDictionary<IntPtr, AsyncState>();
         }
 
-        public async void Start()
+        public void Start()
         {
             Logger.Info("Starting Async service...");
 
-            Listener.Start();
-            while(!Token.IsCancellationRequested)
-            {
-                try
-                {
-                    await Listener.AcceptTcpClientAsync().ContinueWith(Process);
-                }
-                catch (Exception ex)
-                {
-                    Logger.ErrorFormat("Unexpected exception, message: {0}.", ex.Message);
-                    // TODO: Logging, close connection and release resource.
-                }
-            }
+            _acceptEventArgs.Completed += AcceptCompleted;
+
+            Listener.Bind(GetLocalEndPoint());
+            Listener.Listen(_backlog);
+
+            ProcessAccept();
 
             Logger.Info("Stopping Async service...");
-            Listener.Stop();
+
+        }
+
+        private void ProcessAccept()
+        {
+            SetAcceptedSocket(null);
+
+            bool ioResult = Listener.AcceptAsync(_acceptEventArgs);
+            Logger.InfoFormat("Processing client connection, IO operation result: {0}", ioResult);
+
+            if (!ioResult)
+            {
+                AcceptCompleted(this, _acceptEventArgs);
+            }
+        }
+
+        private void AcceptCompleted(object sender, SocketAsyncEventArgs e)
+        {
+            SocketError errorCode = e.SocketError;
+            Logger.InfoFormat("Client connection accepted, error: {0}", errorCode);
+
+            if (errorCode == SocketError.Success)
+            {
+                Socket acceptSocket = e.AcceptSocket;
+
+                byte[] buffer = new byte[_bufferSize];
+                AsyncState state = new AsyncState(acceptSocket, _bufferSize);
+                state.SetBuffer(buffer, 0, _bufferSize);
+                state.Completed += IOCompleted;
+
+                if (!_connectedMapping.TryAdd(acceptSocket.Handle, state))
+                {
+                    throw new DuplicatedClientConnectionException(e.AcceptSocket.Handle, _connectedMapping);
+                }
+
+                if (!acceptSocket.ReceiveAsync(state))
+                {
+                    Logger.Debug("The I/O operation completed synchronously");
+                    // Sync call...
+                    ProcessReceive(state);
+                }
+            }
+            ProcessAccept();
+        }
+
+        private void IOCompleted(object sender, SocketAsyncEventArgs e)
+        {
+            Logger.DebugFormat("IO operation completed, last operation: {0}.", e.LastOperation);
+            switch(e.LastOperation)
+            {
+                case SocketAsyncOperation.Receive:
+                    ProcessReceive(e);
+                    break;
+                case SocketAsyncOperation.Send:
+                    ProcessSend(e);
+                    break;
+                default:
+                    throw new NotSupportedException(string.Format("Not support operation type: {0}.", e.LastOperation));
+            }
+        }
+
+        private void ProcessReceive(SocketAsyncEventArgs e)
+        {
+            AsyncState state = e as AsyncState;
+            if (state == null)
+            {
+                throw new InvalidCastException(string.Format("Cannot convert to {0}.", typeof(AsyncState)));
+            }
+
+            Logger.DebugFormat("Received data size: {0}.", state.ReceivedSize);
+
+
+            //Logger.InfoFormat("", )
+        }
+
+        private void ProcessSend(SocketAsyncEventArgs e)
+        {
+
+        }
+
+        private IPEndPoint GetLocalEndPoint()
+        {
+            if (_family != AddressFamily.InterNetwork &&  _family != AddressFamily.InterNetworkV6)
+            {
+                throw new NotSupportedException(string.Format("Address family '{0}' Not supported.", _family));
+            }
+
+            return _family == AddressFamily.InterNetworkV6 ?
+                new IPEndPoint(IPAddress.IPv6Any, _port) : new IPEndPoint(IPAddress.Any, _port);
+        }
+
+
+        private void SetAcceptedSocket(Socket acceptedSocket)
+        {
+            // BUG here!!! should lock the async operation.
+            lock(_acceptEventArgs)
+            {
+                _acceptEventArgs.AcceptSocket = acceptedSocket;
+            }
         }
 
         private async Task Process(Task<TcpClient> clientTask)
         {
             TcpClient client = await clientTask;
+            HandleTextMessage(client.GetStream());
 
-            using (client)
+            // using (client)
+            // {
+            //     NetworkStream stream = client.GetStream();
+            //     using (stream)
+            //     {
+            //         HandleTextMessage(stream);
+            //     }
+            // }
+        }
+
+        private void HandleTextMessage(NetworkStream stream)
+        {
+            try
             {
-                NetworkStream stream = client.GetStream();
-                using (stream)
-                {
-                    byte[] buffer = new byte[DefaultBufferSize];
-
-                    int readCount = stream.Read(buffer, 0, DefaultBufferSize);
-
-                    Logger.InfoFormat("Received data., count: {0}, content: {1}.", readCount, System.BitConverter.ToString(buffer));
-
-                    Logger.Info("Sending data back.");
-
-                    const string responseMessage = "Server send message back.";
-                    byte[] responseBuffer = System.Text.Encoding.Unicode.GetBytes(responseMessage);
-
-                    Logger.InfoFormat("Sending data., count: {0}, content: {1}.", responseBuffer.Length, System.BitConverter.ToString(responseBuffer));
-
-                    await stream.WriteAsync(responseBuffer, 0, responseBuffer.Length);
-
-
-
-                }
+                HandleTextMessage(stream);
             }
+            catch(Exception e)
+            {
+                Logger.Fatal("Cannot handle message.", e);
+            }
+        }
+
+        private void HandleTextMessageInternal(NetworkStream stream)
+        {
+            byte[] buffer = new byte[1024];
+
+            int readCount = stream.Read(buffer, 0, 1024);
+            string receivedMessage = System.Text.Encoding.Unicode.GetString(buffer, 0, readCount);
+            Logger.InfoFormat("Received message from client: {0}. Sending data back.", receivedMessage);
+
+            string responseMessage = string.Format("Received messag from client: {0}.", receivedMessage);
+            byte[] responseBuffer = System.Text.Encoding.Unicode.GetBytes(responseMessage);
+            stream.Write(responseBuffer, 0, responseBuffer.Length);
         }
     }
 }

@@ -26,7 +26,7 @@ namespace ServerConsole
                     port);
 
                 var source = new CancellationTokenSource();
-                SecurityListener service = new SecurityListener(Convert.ToInt32(port), source.Token);
+                SecurityListener service = new SecurityListener();
                 service.Start(); 
 
                 Quit();

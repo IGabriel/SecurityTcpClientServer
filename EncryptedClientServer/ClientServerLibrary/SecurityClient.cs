@@ -21,32 +21,51 @@ namespace ClientServerLibrary
             Logger.InfoFormat("Connecting to remote server: {0} with port: {1}.", _machineName, _port);
 
             _client = new TcpClient(_machineName, _port);
+
             NetworkStream stream = _client.GetStream();
             using (stream)
             {
-                const string message = "Hello from the client.";
-                byte[] messsageBuffer = Encoding.Unicode.GetBytes(message);
+                // const string message = "Hello from the client.";
+                // byte[] messsageBuffer = Encoding.Unicode.GetBytes(message);
 
-                Logger.DebugFormat("Sending a text: '{0}', buffer Length: {1}, content: {2}",
-                    message, messsageBuffer.Length, BitConverter.ToString(messsageBuffer));
+                // stream.Write(messsageBuffer, 0, messsageBuffer.Length);
+
+                // Logger.InfoFormat("Sent message to server: {0}.", message);
+
+
+                // byte[] receiveBuffer = new byte[1024];
+                // int count = stream.Read(receiveBuffer, 0, 100);
+
+
+                // string messageFromServer1 = Encoding.Unicode.GetString(receiveBuffer, 0, count);
+                // Logger.DebugFormat("Message from server: {0}", messageFromServer1);
+
+                SendMessage(stream, "The first message!");
+                SendMessage(stream, "The second message!");
+                SendMessage(stream, "The thrid message!");
+
+                stream.Close();
+            }
+        }
+
+        private void SendMessage(NetworkStream stream, string message)
+        {
+                byte[] messsageBuffer = Encoding.Unicode.GetBytes(message);
 
                 stream.Write(messsageBuffer, 0, messsageBuffer.Length);
 
-                Logger.Info("Message sent.");
+                stream.Flush();
 
+                Logger.InfoFormat("Sent message to server: {0}.", message);
 
-                byte[] receiveBuffer = new byte[100];
+                byte[] receiveBuffer = new byte[1024];
                 int count = stream.Read(receiveBuffer, 0, 100);
 
-                Logger.DebugFormat("Reveived data. count: {0}, content: {1}.", count, BitConverter.ToString(receiveBuffer));
+                stream.Flush();
 
 
-                // Read message from the server.
-                // string serverMessage = ReadMessage(stream);
-                // Console.WriteLine("Server says: {0}", serverMessage);
-                // Close the client connection.
-                stream.Close();
-            }
+                string messageFromServer1 = Encoding.Unicode.GetString(receiveBuffer, 0, count);
+                Logger.DebugFormat("Message from server: {0}", messageFromServer1);
         }
 
         protected override void DisposeResource()
