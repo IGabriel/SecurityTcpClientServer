@@ -11,6 +11,7 @@ namespace ClientServerLibrary
 {
     public class SecurityListener : LogObject
     {
+        public static readonly int DefaultBufferSize = 8 * 1024;
         /// <summary>
         /// Default listening port, value: 7788
         /// </summary>
@@ -31,7 +32,8 @@ namespace ClientServerLibrary
         /// <summary>
         /// Key: Socket handle
         /// </summary>
-        private ConcurrentDictionary<IntPtr, AsyncState> _connectedMapping;
+        //private ConcurrentDictionary<IntPtr, AsyncState> _connectedMapping;
+        private ConcurrentDictionary<IntPtr, SocketAsyncEventArgs> _connectedMapping;
 
         private Socket Listener
         {
@@ -45,7 +47,7 @@ namespace ClientServerLibrary
             }
         }
 
-        public SecurityListener() : this(AddressFamily.InterNetwork, DefaultPort, DefaultBacklog, AsyncState.DefaultBufferSize) {}
+        public SecurityListener() : this(AddressFamily.InterNetwork, DefaultPort, DefaultBacklog, DefaultBufferSize) {}
 
         public SecurityListener(AddressFamily family, int port, int backlog, int bufferSize)
         {
@@ -55,7 +57,7 @@ namespace ClientServerLibrary
             _bufferSize = bufferSize;
 
             _acceptEventArgs = new SocketAsyncEventArgs();
-            _connectedMapping = new ConcurrentDictionary<IntPtr, AsyncState>();
+            _connectedMapping = new ConcurrentDictionary<IntPtr, SocketAsyncEventArgs>();
         }
 
         public void Start()
@@ -96,7 +98,7 @@ namespace ClientServerLibrary
                 Socket acceptSocket = e.AcceptSocket;
 
                 byte[] buffer = new byte[_bufferSize];
-                AsyncState state = new AsyncState(acceptSocket, _bufferSize);
+                SocketAsyncEventArgs state = new SocketAsyncEventArgs { AcceptSocket = acceptSocket };
                 state.SetBuffer(buffer, 0, _bufferSize);
                 state.Completed += IOCompleted;
 
@@ -108,7 +110,6 @@ namespace ClientServerLibrary
                 if (!acceptSocket.ReceiveAsync(state))
                 {
                     Logger.Debug("The I/O operation completed synchronously");
-                    // Sync call...
                     ProcessReceive(state);
                 }
             }
@@ -133,16 +134,20 @@ namespace ClientServerLibrary
 
         private void ProcessReceive(SocketAsyncEventArgs e)
         {
-            AsyncState state = e as AsyncState;
-            if (state == null)
+            Logger.DebugFormat("Received data size: {0}.", e.BytesTransferred);
+
+            string receivedMessage = System.Text.Encoding.Unicode.GetString(e.Buffer, 0, e.BytesTransferred);
+            Logger.InfoFormat("Received message from client: {0}. Sending data back.", receivedMessage);
+
+            string responseMessage = string.Format("Received messag from client: {0}.", receivedMessage);
+            byte[] responseBuffer = System.Text.Encoding.Unicode.GetBytes(responseMessage);
+
+            e.AcceptSocket.Send(responseBuffer);
+
+            if (!e.AcceptSocket.ReceiveAsync(e))
             {
-                throw new InvalidCastException(string.Format("Cannot convert to {0}.", typeof(AsyncState)));
+                ProcessReceive(e);
             }
-
-            Logger.DebugFormat("Received data size: {0}.", state.ReceivedSize);
-
-
-            //Logger.InfoFormat("", )
         }
 
         private void ProcessSend(SocketAsyncEventArgs e)
@@ -161,40 +166,12 @@ namespace ClientServerLibrary
                 new IPEndPoint(IPAddress.IPv6Any, _port) : new IPEndPoint(IPAddress.Any, _port);
         }
 
-
         private void SetAcceptedSocket(Socket acceptedSocket)
         {
             // BUG here!!! should lock the async operation.
             lock(_acceptEventArgs)
             {
                 _acceptEventArgs.AcceptSocket = acceptedSocket;
-            }
-        }
-
-        private async Task Process(Task<TcpClient> clientTask)
-        {
-            TcpClient client = await clientTask;
-            HandleTextMessage(client.GetStream());
-
-            // using (client)
-            // {
-            //     NetworkStream stream = client.GetStream();
-            //     using (stream)
-            //     {
-            //         HandleTextMessage(stream);
-            //     }
-            // }
-        }
-
-        private void HandleTextMessage(NetworkStream stream)
-        {
-            try
-            {
-                HandleTextMessage(stream);
-            }
-            catch(Exception e)
-            {
-                Logger.Fatal("Cannot handle message.", e);
             }
         }
 

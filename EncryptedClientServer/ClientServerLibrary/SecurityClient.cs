@@ -25,21 +25,6 @@ namespace ClientServerLibrary
             NetworkStream stream = _client.GetStream();
             using (stream)
             {
-                // const string message = "Hello from the client.";
-                // byte[] messsageBuffer = Encoding.Unicode.GetBytes(message);
-
-                // stream.Write(messsageBuffer, 0, messsageBuffer.Length);
-
-                // Logger.InfoFormat("Sent message to server: {0}.", message);
-
-
-                // byte[] receiveBuffer = new byte[1024];
-                // int count = stream.Read(receiveBuffer, 0, 100);
-
-
-                // string messageFromServer1 = Encoding.Unicode.GetString(receiveBuffer, 0, count);
-                // Logger.DebugFormat("Message from server: {0}", messageFromServer1);
-
                 SendMessage(stream, "The first message!");
                 SendMessage(stream, "The second message!");
                 SendMessage(stream, "The thrid message!");
