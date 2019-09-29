@@ -30,8 +30,9 @@ namespace ClientConsole
             using (SecurityClient client = new SecurityClient(machineName, port))
             {
                 client.Connect();
-            }
 
+                System.Console.ReadLine();
+            }            
         }
 
         private static void ShowUsage()

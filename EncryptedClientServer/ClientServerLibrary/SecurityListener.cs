@@ -32,8 +32,7 @@ namespace ClientServerLibrary
         /// <summary>
         /// Key: Socket handle
         /// </summary>
-        //private ConcurrentDictionary<IntPtr, AsyncState> _connectedMapping;
-        private ConcurrentDictionary<IntPtr, SocketAsyncEventArgs> _connectedMapping;
+        private ConcurrentDictionary<IntPtr, SocketAsyncEventArgs> _AcceptSocketMapping;
 
         private Socket Listener
         {
@@ -57,7 +56,7 @@ namespace ClientServerLibrary
             _bufferSize = bufferSize;
 
             _acceptEventArgs = new SocketAsyncEventArgs();
-            _connectedMapping = new ConcurrentDictionary<IntPtr, SocketAsyncEventArgs>();
+            _AcceptSocketMapping = new ConcurrentDictionary<IntPtr, SocketAsyncEventArgs>();
         }
 
         public void Start()
@@ -66,7 +65,8 @@ namespace ClientServerLibrary
 
             _acceptEventArgs.Completed += AcceptCompleted;
 
-            Listener.Bind(GetLocalEndPoint());
+            IPEndPoint endPoint = GetLocalEndPoint();
+            Listener.Bind(endPoint);
             Listener.Listen(_backlog);
 
             ProcessAccept();
@@ -77,21 +77,23 @@ namespace ClientServerLibrary
 
         private void ProcessAccept()
         {
-            SetAcceptedSocket(null);
-
-            bool ioResult = Listener.AcceptAsync(_acceptEventArgs);
-            Logger.InfoFormat("Processing client connection, IO operation result: {0}", ioResult);
-
-            if (!ioResult)
+            // TODO: User Monitor and set timeout.
+            lock(_acceptEventArgs)
             {
-                AcceptCompleted(this, _acceptEventArgs);
+                bool ioResult = Listener.AcceptAsync(_acceptEventArgs);
+                Logger.DebugFormat("Processing client connection, IO operation result: {0}", ioResult);
+
+                if (!ioResult)
+                {
+                    AcceptCompleted(this, _acceptEventArgs);
+                }
             }
         }
 
         private void AcceptCompleted(object sender, SocketAsyncEventArgs e)
         {
             SocketError errorCode = e.SocketError;
-            Logger.InfoFormat("Client connection accepted, error: {0}", errorCode);
+            Logger.DebugFormat("Client connection accepted, error: {0}", errorCode);
 
             if (errorCode == SocketError.Success)
             {
@@ -102,9 +104,9 @@ namespace ClientServerLibrary
                 state.SetBuffer(buffer, 0, _bufferSize);
                 state.Completed += IOCompleted;
 
-                if (!_connectedMapping.TryAdd(acceptSocket.Handle, state))
+                if (!_AcceptSocketMapping.TryAdd(acceptSocket.Handle, state))
                 {
-                    throw new DuplicatedClientConnectionException(e.AcceptSocket.Handle, _connectedMapping);
+                    throw new DuplicatedClientConnectionException(e.AcceptSocket.Handle, _AcceptSocketMapping);
                 }
 
                 if (!acceptSocket.ReceiveAsync(state))
@@ -146,6 +148,7 @@ namespace ClientServerLibrary
 
             if (!e.AcceptSocket.ReceiveAsync(e))
             {
+                Logger.Debug("The I/O operation completed synchronously");
                 ProcessReceive(e);
             }
         }
@@ -166,26 +169,70 @@ namespace ClientServerLibrary
                 new IPEndPoint(IPAddress.IPv6Any, _port) : new IPEndPoint(IPAddress.Any, _port);
         }
 
-        private void SetAcceptedSocket(Socket acceptedSocket)
+        private void HandleTransferException(Action transferAction, Socket currentSocket)
         {
-            // BUG here!!! should lock the async operation.
-            lock(_acceptEventArgs)
+            try
             {
-                _acceptEventArgs.AcceptSocket = acceptedSocket;
+                transferAction();
+            }
+            catch (System.Exception ex)
+            {
+                Logger.Error(string.Format("Rise exception is method: {0}", transferAction.Method.Name), ex);
+                if (currentSocket != null)
+                {
+                    ShutdownSocket(currentSocket);
+                }
+                else
+                {
+                    Logger.Warn("No accept socket.");
+                }
             }
         }
 
-        private void HandleTextMessageInternal(NetworkStream stream)
+        private void ShutdownSocket(Socket socket)
         {
-            byte[] buffer = new byte[1024];
+            if (socket == null)
+            {
+                Logger.Error("Target socket is null.");
+                return;
+            }
 
-            int readCount = stream.Read(buffer, 0, 1024);
-            string receivedMessage = System.Text.Encoding.Unicode.GetString(buffer, 0, readCount);
-            Logger.InfoFormat("Received message from client: {0}. Sending data back.", receivedMessage);
+            int handleValue = socket.Handle.ToInt32();
+            OnCloseAcceptSocket(handleValue);
 
-            string responseMessage = string.Format("Received messag from client: {0}.", receivedMessage);
-            byte[] responseBuffer = System.Text.Encoding.Unicode.GetBytes(responseMessage);
-            stream.Write(responseBuffer, 0, responseBuffer.Length);
+            SocketAsyncEventArgs removedArgs;
+            if (!_AcceptSocketMapping.TryRemove(socket.Handle, out removedArgs))
+            {
+                Logger.ErrorFormat("Cannot remove the accepted socket, handle :{0}.", socket.Handle);
+            }
+
+            try
+            {
+                socket.Shutdown(SocketShutdown.Both);
+                socket.Close();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(string.Format("Cannot shutdown and close socket, handle: {0}.", socket.Handle), ex);
+            }
+
+            OnClosedAcceptSocket(handleValue);
         }
+
+        protected virtual void OnCloseAcceptSocket(int handle) {}
+        protected virtual void OnClosedAcceptSocket(int handle) {}
+
+        // private void HandleTextMessageInternal(NetworkStream stream)
+        // {
+        //     byte[] buffer = new byte[1024];
+
+        //     int readCount = stream.Read(buffer, 0, 1024);
+        //     string receivedMessage = System.Text.Encoding.Unicode.GetString(buffer, 0, readCount);
+        //     Logger.InfoFormat("Received message from client: {0}. Sending data back.", receivedMessage);
+
+        //     string responseMessage = string.Format("Received messag from client: {0}.", receivedMessage);
+        //     byte[] responseBuffer = System.Text.Encoding.Unicode.GetBytes(responseMessage);
+        //     stream.Write(responseBuffer, 0, responseBuffer.Length);
+        // }
     }
 }

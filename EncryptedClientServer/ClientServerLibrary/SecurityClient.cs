@@ -23,14 +23,9 @@ namespace ClientServerLibrary
             _client = new TcpClient(_machineName, _port);
 
             NetworkStream stream = _client.GetStream();
-            using (stream)
-            {
-                SendMessage(stream, "The first message!");
-                SendMessage(stream, "The second message!");
-                SendMessage(stream, "The thrid message!");
-
-                stream.Close();
-            }
+            SendMessage(stream, "The first message!");
+            SendMessage(stream, "The second message!");
+            SendMessage(stream, "The thrid message!");
         }
 
         private void SendMessage(NetworkStream stream, string message)
