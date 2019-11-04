@@ -31,7 +31,7 @@ namespace ClientConsole
             {
                 client.Connect();
 
-                System.Console.ReadLine();
+                //System.Console.ReadLine();
             }            
         }
 

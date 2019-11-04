@@ -1,6 +1,7 @@
 using System;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 
 namespace ClientServerLibrary
 {
@@ -30,22 +31,24 @@ namespace ClientServerLibrary
 
         private void SendMessage(NetworkStream stream, string message)
         {
-                byte[] messsageBuffer = Encoding.Unicode.GetBytes(message);
+            Thread.Sleep(1000);
 
-                stream.Write(messsageBuffer, 0, messsageBuffer.Length);
+            byte[] messsageBuffer = Encoding.Unicode.GetBytes(message);
 
-                stream.Flush();
+            stream.Write(messsageBuffer, 0, messsageBuffer.Length);
 
-                Logger.InfoFormat("Sent message to server: {0}.", message);
+            stream.Flush();
 
-                byte[] receiveBuffer = new byte[1024];
-                int count = stream.Read(receiveBuffer, 0, 100);
+            Logger.InfoFormat("Sent message to server: {0}.", message);
 
-                stream.Flush();
+            byte[] receiveBuffer = new byte[1024];
+            int count = stream.Read(receiveBuffer, 0, 100);
+
+            stream.Flush();
 
 
-                string messageFromServer1 = Encoding.Unicode.GetString(receiveBuffer, 0, count);
-                Logger.DebugFormat("Message from server: {0}", messageFromServer1);
+            string messageFromServer1 = Encoding.Unicode.GetString(receiveBuffer, 0, count);
+            Logger.DebugFormat("Message from server: {0}", messageFromServer1);
         }
 
         protected override void DisposeResource()
