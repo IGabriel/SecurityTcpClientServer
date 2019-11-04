@@ -59,9 +59,9 @@ namespace ClientServerLibrary
                 {
                     _client.Close();
                 }
-                catch
+                catch (Exception ex)
                 {
-
+                    Logger.Warn("Cannot release security client.", ex);
                 }
                 _client.Dispose();
             }

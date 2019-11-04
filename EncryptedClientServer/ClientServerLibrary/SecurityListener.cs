@@ -44,83 +44,70 @@ namespace ClientServerLibrary
             NetworkSocket.Listen(_backlog);
 
             StartAccept();
-
-            //ProcessAccept();
-
-            // Logger.Info("Stopping Async service...");
-
         }
 
         // Handle socket accept
         private void StartAccept()
         {
+            Logger.Info("Star to accept socket connection.");
+
             SocketAsyncEventArgs acceptArgs = new SocketAsyncEventArgs();
             acceptArgs.Completed += AcceptCompleted;
 
             bool willRaiseEvent = NetworkSocket.AcceptAsync(acceptArgs);
+            Logger.InfoFormat("Accepted socket connection, rise async event? {0}.", willRaiseEvent);
+
             if (!willRaiseEvent)
             {
+                Logger.Debug("The socket connect operation completed synchronously");
                 AcceptCompleted(NetworkSocket, acceptArgs);
             }
         }
 
+        // TODO: To static?
         private void AcceptCompleted(object sender, SocketAsyncEventArgs e)
         {
             if (e.SocketError == SocketError.Success && e.AcceptSocket != null)
             {
-                lock(e)
+                IntPtr handle = e.AcceptSocket.Handle;
+                if (_acceptSocketMapping.TryAdd(handle, e))
                 {
-                    e.Completed -= AcceptCompleted;
-                    e.Completed += IOCompleted;
+                    Logger.InfoFormat("Accepted the socket handle: {0}.", handle);
+                    StartReceive(e);
+                    StartAccept();
+                }
+                else
+                {
+                    StartAccept();
 
-                    IntPtr handle = e.AcceptSocket.Handle;
-                    if (_acceptSocketMapping.TryAdd(handle, e))
-                    {
-                        Logger.InfoFormat("Accepted the socket handle: {0}.", handle);
-                    }
-                    else
-                    {
-                        Logger.WarnFormat("The socket handle already exists, value: {0}.", e.AcceptSocket.Handle);
-                        ShutdownSocket(e.AcceptSocket);
-                    }
+                    Logger.WarnFormat("The socket handle already exists, value: {0}.", handle);
+                    ShutdownSocket(e.AcceptSocket);
                 }
             }
             else
             {
-                Logger.WarnFormat("Cannot accept socket connection, socket handle: {0}, error code: {1}.",
-                    e != null && e.AcceptSocket != null ? e.AcceptSocket.Handle : IntPtr.Zero, e.SocketError);
+                StartAccept();
+
+                Logger.WarnFormat("Cannot accept socket connection, error code: {0}, socket handle: {1}.",
+                    e.SocketError, e != null && e.AcceptSocket != null ? e.AcceptSocket.Handle : IntPtr.Zero);
                 ShutdownSocket(e.AcceptSocket);
             }
-            StartAccept();
         }
 
-        // private void AcceptCompleted_temp(object sender, SocketAsyncEventArgs e)
-        // {
-        //     SocketError errorCode = e.SocketError;
-        //     Logger.DebugFormat("Client connection accepted, error: {0}", errorCode);
+        private void StartReceive(SocketAsyncEventArgs eventArgs)
+        {
+            eventArgs.Completed -= AcceptCompleted;
+            eventArgs.Completed += IOCompleted;
 
-        //     if (errorCode == SocketError.Success)
-        //     {
-        //         Socket acceptSocket = e.AcceptSocket;
+            byte[] buffer = new byte[_bufferSize];
+            eventArgs.SetBuffer(buffer, 0, _bufferSize);
 
-        //         byte[] buffer = new byte[_bufferSize];
-        //         SocketAsyncEventArgs state = new SocketAsyncEventArgs { AcceptSocket = acceptSocket };
-        //         state.SetBuffer(buffer, 0, _bufferSize);
-        //         state.Completed += IOCompleted;
-
-        //         if (!_acceptSocketMapping.TryAdd(acceptSocket.Handle, state))
-        //         {
-        //             //throw new DuplicatedClientConnectionException(e.AcceptSocket.Handle, _AcceptSocketMapping);
-        //         }
-
-        //         if (!acceptSocket.ReceiveAsync(state))
-        //         {
-        //             Logger.Debug("The I/O operation completed synchronously");
-        //             ProcessReceive(state);
-        //         }
-        //     }
-        //     //ProcessAccept_temp();
-        // }
+            if (!eventArgs.AcceptSocket.ReceiveAsync(eventArgs))
+            {
+                Logger.Debug("The I/O operation completed synchronously");
+                HandleTransferException(() => ProcessReceive(eventArgs), eventArgs.AcceptSocket);
+            }
+        }
 
         private void IOCompleted(object sender, SocketAsyncEventArgs e)
         {
@@ -128,10 +115,7 @@ namespace ClientServerLibrary
             switch(e.LastOperation)
             {
                 case SocketAsyncOperation.Receive:
-                    ProcessReceive(e);
-
                     HandleTransferException(() => ProcessReceive(e), e.AcceptSocket);
-
                     break;
                 case SocketAsyncOperation.Send:
                     ProcessSend(e);
