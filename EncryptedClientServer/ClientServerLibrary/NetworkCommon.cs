@@ -55,11 +55,18 @@ namespace ClientServerLibrary
 
         public void ShutdownSocket(Socket socket)
         {
+            ShutdownSocket(socket, string.Empty);
+        }
+
+        public void ShutdownSocket(Socket socket, string reason)
+        {
             if (socket == null)
             {
                 Logger.Error("Target socket is null.");
                 return;
             }
+
+            Logger.InfoFormat("Shutting down socket '{0}', reason: {1}.", socket.Handle, reason);
 
             IntPtr handleValue = socket.Handle;
             OnClosingAcceptSocket(handleValue);

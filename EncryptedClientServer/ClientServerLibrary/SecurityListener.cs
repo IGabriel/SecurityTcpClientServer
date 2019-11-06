@@ -64,7 +64,6 @@ namespace ClientServerLibrary
             }
         }
 
-        // TODO: To static?
         private void AcceptCompleted(object sender, SocketAsyncEventArgs e)
         {
             if (e.SocketError == SocketError.Success && e.AcceptSocket != null)
@@ -79,18 +78,13 @@ namespace ClientServerLibrary
                 else
                 {
                     StartAccept();
-
-                    Logger.WarnFormat("The socket handle already exists, value: {0}.", handle);
-                    ShutdownSocket(e.AcceptSocket);
+                    ShutdownSocket(e.AcceptSocket, string.Format("The socket handle already exists in mapping."));
                 }
             }
             else
             {
                 StartAccept();
-
-                Logger.WarnFormat("Cannot accept socket connection, error code: {0}, socket handle: {1}.",
-                    e.SocketError, e != null && e.AcceptSocket != null ? e.AcceptSocket.Handle : IntPtr.Zero);
-                ShutdownSocket(e.AcceptSocket);
+                ShutdownSocket(e.AcceptSocket, string.Format("Error code: {0}.", e.SocketError));
             }
         }
 
