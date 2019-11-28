@@ -31,7 +31,7 @@ namespace ClientServerLibrary
 
         private void SendMessage(NetworkStream stream, string message)
         {
-            Thread.Sleep(1000);
+            Thread.Sleep(10000);
 
             byte[] messsageBuffer = Encoding.Unicode.GetBytes(message);
 
@@ -42,7 +42,7 @@ namespace ClientServerLibrary
             Logger.InfoFormat("Sent message to server: {0}.", message);
 
             byte[] receiveBuffer = new byte[1024];
-            int count = stream.Read(receiveBuffer, 0, 100);
+            int count = stream.Read(receiveBuffer, 0, 1024);
 
             stream.Flush();
 

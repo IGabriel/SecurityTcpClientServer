@@ -72,7 +72,11 @@ namespace ClientServerLibrary
                 if (_acceptSocketMapping.TryAdd(handle, e))
                 {
                     Logger.InfoFormat("Accepted the socket handle: {0}.", handle);
+
+                    OnAcceptingSocket(e);
                     StartReceive(e);
+                    OnAcceptedSocket(e);
+
                     StartAccept();
                 }
                 else
@@ -154,7 +158,7 @@ namespace ClientServerLibrary
                 new IPEndPoint(IPAddress.IPv6Any, _port) : new IPEndPoint(IPAddress.Any, _port);
         }
 
-        protected override void OnClosedAcceptSocket(IntPtr handle)
+        protected override void OnClosedSocket(IntPtr handle)
         {
             SocketAsyncEventArgs removedArgs;
             if (!_acceptSocketMapping.TryRemove(handle, out removedArgs))
@@ -162,5 +166,12 @@ namespace ClientServerLibrary
                 Logger.ErrorFormat("Cannot remove the accepted socket, handle :{0}.", handle);
             }
         }
+
+        protected virtual void OnAcceptingSocket(SocketAsyncEventArgs e) {}
+        protected virtual void OnAcceptedSocket(SocketAsyncEventArgs e) {}
+        protected virtual void onReceivingPacket(SocketAsyncEventArgs e) {}
+        // TODO: it should be a network package.
+        protected virtual void onReceivedPacket(byte[] data) {}
+
     }
 }

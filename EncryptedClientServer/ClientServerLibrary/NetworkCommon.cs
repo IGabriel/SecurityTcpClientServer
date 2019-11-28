@@ -58,6 +58,11 @@ namespace ClientServerLibrary
             ShutdownSocket(socket, string.Empty);
         }
 
+        /// <summary>
+        /// Shutdown socket.
+        /// </summary>
+        /// <param name="socket">connected socket</param>
+        /// <param name="reason">Text to describe the reason, message format: 'Shutting down socket '{0}', reason: {1}.'</param>
         public void ShutdownSocket(Socket socket, string reason)
         {
             if (socket == null)
@@ -69,7 +74,7 @@ namespace ClientServerLibrary
             Logger.InfoFormat("Shutting down socket '{0}', reason: {1}.", socket.Handle, reason);
 
             IntPtr handleValue = socket.Handle;
-            OnClosingAcceptSocket(handleValue);
+            OnClosingSocket(handleValue);
 
             try
             {
@@ -78,14 +83,14 @@ namespace ClientServerLibrary
             }
             catch (Exception ex)
             {
-                Logger.Error(string.Format("Cannot shutdown and close socket, handle: {0}.", socket.Handle), ex);
+                Logger.Error(string.Format("Cannot shutdown and close the socket, handle: {0}.", socket.Handle), ex);
             }
 
-            OnClosedAcceptSocket(handleValue);
+            OnClosedSocket(handleValue);
         }
 
-        protected virtual void OnClosingAcceptSocket(IntPtr handle) {}
-        protected virtual void OnClosedAcceptSocket(IntPtr handle) {}
+        protected virtual void OnClosingSocket(IntPtr handle) {}
+        protected virtual void OnClosedSocket(IntPtr handle) {}
 
     }
 }
